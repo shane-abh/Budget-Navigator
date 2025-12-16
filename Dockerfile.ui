@@ -1,43 +1,31 @@
-# Frontend UI Dockerfile (Multi-stage build)
+# Frontend UI Dockerfile
 FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Accept build argument for VITE_API_URL
+# Build arguments
 ARG VITE_API_URL=http://localhost:8000
 ENV VITE_API_URL=$VITE_API_URL
 
-# --- FIX START ---
-
-# 1. Copy ONLY package files first. 
-# This allows Docker to cache the "npm install" layer. 
-# If you change your code but not your dependencies, Docker skips the install step!
+# 1. Copy package files
 COPY ["ui/Tax RAG/package.json", "ui/Tax RAG/package-lock.json", "./"]
 
-# 2. Install ALL dependencies (including devDependencies like TypeScript)
-ENV NODE_ENV=production
-RUN npm ci
+# 2. THE FIX: Use 'npm install' instead of 'npm ci'
+# This is more forgiving for Windows-to-Linux transfers
+RUN npm install
 
-# 3. Copy the rest of the application code
+# 3. NUCLEAR OPTION: Manually install TypeScript globally to guarantee 'tsc' exists
+RUN npm install -g typescript
+
+# 4. Copy the source code
 COPY ["ui/Tax RAG/", "./"]
 
-# --- FIX END ---
-
-# Build the application
+# 5. Build
 RUN npm run build
 
-# Production stage - serve with nginx
+# --- Production Stage ---
 FROM nginx:alpine
-
-# Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
 COPY ["ui/Tax RAG/nginx.conf", "/etc/nginx/conf.d/default.conf"]
-
-# Expose port
 EXPOSE 80
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
