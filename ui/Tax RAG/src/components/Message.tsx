@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { preprocessContent } from '../utils/markdown';
-import { sanitizeForDisplay } from '../utils/inputValidation';
+import { escapeHtml, removeDangerousContent } from '../utils/inputValidation';
 
 interface MessageProps {
   message: MessageType;
@@ -17,8 +17,8 @@ function Message({ message }: MessageProps) {
       <div className={`message ${message.isUser ? 'user' : 'assistant'}`}>
         <div className="message-content">
           {message.isUser ? (
-            // Sanitize user messages to prevent XSS
-            sanitizeForDisplay(message.content)
+            // Remove dangerous content and escape HTML for safe display
+            escapeHtml(removeDangerousContent(message.content))
           ) : (
             <ReactMarkdown 
               remarkPlugins={[remarkGfm, remarkBreaks]}

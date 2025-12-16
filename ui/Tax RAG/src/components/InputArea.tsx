@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { validateChatInput, sanitizeInput } from '../utils/inputValidation';
+import { validateChatInput, removeDangerousContent } from '../utils/inputValidation';
 
 interface InputAreaProps {
   inputValue: string;
@@ -33,8 +33,9 @@ function InputArea({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Sanitize input in real-time to prevent malicious content
-    const sanitized = sanitizeInput(value);
+    // Remove dangerous content in real-time without escaping HTML
+    // This preserves user input while preventing malicious patterns
+    const sanitized = removeDangerousContent(value);
     onInputChange(sanitized);
   };
 

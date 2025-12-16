@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: budget-navigator-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
+    env_file:
+      - .env
+    volumes:
+      # Mount data directory for persistent storage
+      - ./api:/app
+      - api_data:/app/data
+      - chroma_data:/app/chroma_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend UI Service
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+      args:
+        - VITE_API_URL=http://localhost:8000
+    container_name: budget-navigator-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - default
+
+  # Alternative: Single service with both frontend and backend
+  # Uncomment this and comment out 'api' and 'ui' above to use a single container
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: budget-navigator
+  #   ports:
+  #     - "80:80"
+  #   environment:
+  #     - PINECONE_API_KEY=${PINECONE_API_KEY}
+  #     - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+  #     - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - api_data:/app/api/data
+  #     - chroma_data:/app/api/chroma_db
+  #   restart: unless-stopped
+
+volumes:
+  api_data:
+    driver: local
+  chroma_data:
+    driver: local
+

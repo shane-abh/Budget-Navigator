@@ -1,0 +1,40 @@
+# Backend API Dockerfile
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY api/requirements_api.txt /app/requirements.txt
+
+# Install Python dependencies and gunicorn
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# Copy API code
+COPY api/ /app/
+
+# Create directory for indexed documents
+RUN mkdir -p /app/data
+
+# Expose port
+EXPOSE 8000
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/')" || exit 1
+
+# Use Gunicorn with Uvicorn workers
+# -w 4: Use 4 workers (since you have 4 vCPUs)
+# -k uvicorn.workers.UvicornWorker: The worker class for FastAPI
+CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app:app", "--bind", "0.0.0.0:8000"]
+

@@ -38,6 +38,7 @@ const HTML_ENTITIES: { [key: string]: string } = {
 
 /**
  * Escapes HTML special characters to prevent XSS
+ * This should only be called on raw text, not on already-escaped text
  */
 export function escapeHtml(text: string): string {
   return text.replace(/[<>&"'/]/g, (char) => HTML_ENTITIES[char] || char);
@@ -52,9 +53,10 @@ export function containsMaliciousContent(input: string): boolean {
 }
 
 /**
- * Sanitizes input by removing dangerous patterns and escaping HTML
+ * Removes dangerous patterns from input without escaping HTML
+ * Use this for real-time input sanitization to preserve user input
  */
-export function sanitizeInput(input: string): string {
+export function removeDangerousContent(input: string): string {
   let sanitized = input;
   
   // Remove script tags and dangerous HTML
@@ -70,10 +72,21 @@ export function sanitizeInput(input: string): string {
   sanitized = sanitized.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
   sanitized = sanitized.replace(/on\w+\s*=\s*[^\s>]*/gi, '');
   
+  return sanitized;
+}
+
+/**
+ * Sanitizes input by removing dangerous patterns and escaping HTML
+ * Note: Does not trim - trimming should be done separately when validating
+ * Use this only when you need both removal and escaping (e.g., for display)
+ */
+export function sanitizeInput(input: string): string {
+  let sanitized = removeDangerousContent(input);
+  
   // Escape remaining HTML
   sanitized = escapeHtml(sanitized);
   
-  return sanitized.trim();
+  return sanitized;
 }
 
 /**
@@ -103,7 +116,7 @@ export function validateChatInput(input: string): ValidationResult {
     return { 
       isValid: false, 
       error: 'Message contains potentially unsafe content. Please remove any scripts or HTML tags.',
-      sanitized: sanitizeInput(trimmed)
+      sanitized: removeDangerousContent(trimmed)
     };
   }
   
@@ -131,19 +144,19 @@ export function validateNameInput(input: string): ValidationResult {
   // Allow only alphanumeric, spaces, hyphens, apostrophes, and common unicode characters
   // This prevents script injection while allowing legitimate names
   const namePattern = /^[\p{L}\p{N}\s\-'.,]+$/u;
-  if (!namePattern.test(trimmed)) {
-    return { 
-      isValid: false, 
-      error: 'Name contains invalid characters. Please use only letters, numbers, spaces, and common punctuation.',
-      sanitized: sanitizeInput(trimmed)
-    };
-  }
+    if (!namePattern.test(trimmed)) {
+      return { 
+        isValid: false, 
+        error: 'Name contains invalid characters. Please use only letters, numbers, spaces, and common punctuation.',
+        sanitized: removeDangerousContent(trimmed)
+      };
+    }
   
   if (containsMaliciousContent(trimmed)) {
     return { 
       isValid: false, 
       error: 'Name contains potentially unsafe content. Please use a valid name.',
-      sanitized: sanitizeInput(trimmed)
+      sanitized: removeDangerousContent(trimmed)
     };
   }
   
@@ -151,7 +164,8 @@ export function validateNameInput(input: string): ValidationResult {
 }
 
 /**
- * Sanitizes text for safe display (removes scripts but preserves formatting)
+ * Sanitizes text for safe display (removes scripts and escapes HTML)
+ * This is the same as sanitizeInput but kept for backward compatibility
  */
 export function sanitizeForDisplay(text: string): string {
   return sanitizeInput(text);

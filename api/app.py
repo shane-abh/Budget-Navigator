@@ -41,7 +41,6 @@ app.add_middleware(
         "http://127.0.0.1:5500",
         "http://localhost:5173",      # Vite dev server
         "https://tax-rag-nwkw.vercel.app",
-        "https://binate-denny-astable.ngrok-free.dev",
         "https://tag-rag.vercel.app",
         "null",                       # For file:// protocol (opening HTML directly)
     ],
