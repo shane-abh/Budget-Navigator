@@ -16,7 +16,8 @@ ENV VITE_API_URL=$VITE_API_URL
 COPY ["ui/Tax RAG/package.json", "ui/Tax RAG/package-lock.json", "./"]
 
 # 2. Install ALL dependencies (including devDependencies like TypeScript)
-RUN npm ci --include=dev
+ENV NODE_ENV=production
+RUN npm ci
 
 # 3. Copy the rest of the application code
 COPY ["ui/Tax RAG/", "./"]
