@@ -7,8 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     container_name: budget-navigator-api
-    ports:
-      - "8000:8000"
+    # REMOVED PORTS: Traefik handles traffic. We don't expose 8000 to the world directly.
     environment:
       - PINECONE_API_KEY=${PINECONE_API_KEY}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
@@ -16,23 +15,30 @@ services:
     env_file:
       - .env
     volumes:
-      # Mount data directory for persistent storage
       - ./api:/app
       - api_data:/app/data
       - chroma_data:/app/chroma_db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      # Changed localhost to 127.0.0.1 for better internal reliability
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://127.0.0.1:8000/')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - web_proxy # MUST match the network Traefik is on
+      - internal  # For backend-frontend communication (optional but good practice)
     labels:
       - "traefik.enable=true"
+      # Router Configuration
       - "traefik.http.routers.rag-api.rule=Host(`api.budgetnavigator.shaneabh.com`)"
-      - "traefik.http.routers.rag-api.service=rag-api"
+      - "traefik.http.routers.rag-api.entrypoints=websecure"
       - "traefik.http.routers.rag-api.tls=true"
-      - "traefik.http.routers.rag-api.tls.certresolver=letsencrypt"
+      # MUST match the name defined in Traefik's command (we used 'myresolver' previously)
+      - "traefik.http.routers.rag-api.tls.certresolver=myresolver" 
+      # Service Configuration (Tell Traefik which port the container uses internally)
+      - "traefik.http.services.rag-api.loadbalancer.server.port=8000"
 
   # Frontend UI Service
   ui:
@@ -40,47 +46,33 @@ services:
       context: .
       dockerfile: Dockerfile.ui
       args:
-        - VITE_API_URL=http://localhost:8000
+        # CRITICAL CHANGE: The browser needs the PUBLIC domain, not localhost
+        - VITE_API_URL=https://api.budgetnavigator.shaneabh.com
     container_name: budget-navigator-ui
-    ports:
-      - "3000:80"
     depends_on:
       - api
     restart: unless-stopped
     networks:
-      - default
+      - web_proxy
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.budget-navigator-ui.rule=Host(`budgetnavigator.shaneabh.com`)"
-      - "traefik.http.routers.budget-navigator-ui.service=budget-navigator-ui"
-      - "traefik.http.routers.budget-navigator-ui.tls=true"
-      - "traefik.http.routers.budget-navigator-ui.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.rag-front.entrypoints=websecure"
-      - "traefik.http.routers.rag-front.tls.certresolver=letsencrypt"
+      # Router Configuration
+      - "traefik.http.routers.budget-ui.rule=Host(`budgetnavigator.shaneabh.com`)"
+      - "traefik.http.routers.budget-ui.entrypoints=websecure"
+      - "traefik.http.routers.budget-ui.tls=true"
+      - "traefik.http.routers.budget-ui.tls.certresolver=myresolver"
+      # Service Configuration (Tell Traefik port 80 is the target)
+      - "traefik.http.services.budget-ui.loadbalancer.server.port=80"
 
-  # Alternative: Single service with both frontend and backend
-  # Uncomment this and comment out 'api' and 'ui' above to use a single container
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: budget-navigator
-  #   ports:
-  #     - "80:80"
-  #   environment:
-  #     - PINECONE_API_KEY=${PINECONE_API_KEY}
-  #     - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-  #     - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - api_data:/app/api/data
-  #     - chroma_data:/app/api/chroma_db
-  #   restart: unless-stopped
+networks:
+  web_proxy:
+    external: true # This connects to the network created in Phase 1
+  internal:
+    driver: bridge
 
 volumes:
   api_data:
     driver: local
   chroma_data:
     driver: local
-
