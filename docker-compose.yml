@@ -27,6 +27,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rag-api.rule=Host(`api.budgetnavigator.shaneabh.com`)"
+      - "traefik.http.routers.rag-api.service=rag-api"
+      - "traefik.http.routers.rag-api.tls=true"
+      - "traefik.http.routers.rag-api.tls.certresolver=letsencrypt"
 
   # Frontend UI Service
   ui:
@@ -43,6 +49,14 @@ services:
     restart: unless-stopped
     networks:
       - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.budget-navigator-ui.rule=Host(`budgetnavigator.shaneabh.com`)"
+      - "traefik.http.routers.budget-navigator-ui.service=budget-navigator-ui"
+      - "traefik.http.routers.budget-navigator-ui.tls=true"
+      - "traefik.http.routers.budget-navigator-ui.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.rag-front.entrypoints=websecure"
+      - "traefik.http.routers.rag-front.tls.certresolver=letsencrypt"
 
   # Alternative: Single service with both frontend and backend
   # Uncomment this and comment out 'api' and 'ui' above to use a single container
