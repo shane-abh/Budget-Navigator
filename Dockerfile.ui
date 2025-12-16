@@ -13,7 +13,7 @@ COPY ["ui/Tax RAG/package.json", "ui/Tax RAG/package-lock.json", "./"]
 
 # 2. Install dependencies AND TypeScript in one go
 # We use 'npm install' to be safe, and add typescript globally just in case.
-RUN npm install && npm install -g typescript
+RUN npm install --verbose --maxsockets=1 && npm install -g typescript
 
 # 3. Copy the source code
 COPY ["ui/Tax RAG/", "./"]
