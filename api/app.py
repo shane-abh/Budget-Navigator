@@ -414,7 +414,7 @@ def add_to_session(session_id: str, role: str, content: str, metadata: dict = No
         "metadata": metadata or {}
     })
 
-def get_session_history(session_id: str, last_n: int = 3) -> str:
+def get_session_history(session_id: str, last_n: int = 10) -> str:
     """Get formatted conversation history for context"""
     if session_id not in conversation_sessions:
         return ""
@@ -423,10 +423,11 @@ def get_session_history(session_id: str, last_n: int = 3) -> str:
     if not history:
         return ""
     
-    formatted = "Previous conversation:\n"
+    formatted = "Conversation History:\n"
     for msg in history:
-        formatted += f"{msg['role'].upper()}: {msg['content']}\n"
-    return formatted + "\n"
+        role = "User" if msg['role'] == "user" else "Assistant"
+        formatted += f"{role}: {msg['content']}\n\n"
+    return formatted
 
 # ==================== Startup Event ====================
 @app.on_event("startup")
@@ -762,13 +763,14 @@ async def _chat_stream_handler(
             
             # Prepare prompt
             context = "\n\n".join([doc.page_content for doc in docs])
-            prompt = f"""{history_context}Use the following pieces of retrieved context to answer the question.
+            prompt = f"""You are a helpful assistant. Use the conversation history and retrieved context below to answer the user's question.
 If you don't know the answer, say that you don't know. Give detailed explanation for the answer.
 
-Context:
+{history_context}
+Retrieved Context:
 {context}
 
-Question: {question}
+Current Question: {question}
 
 Answer:"""
             
