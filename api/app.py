@@ -39,7 +39,9 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5500",      # VS Code Live Server
         "http://127.0.0.1:5500",
-        "http://localhost:5173",      # Vite dev server
+        "http://localhost:5173",     
+        "https://api.budgetnavigator.shaneabh.com",
+        "https://budgetnavigator.shaneabh.com", # Vite dev server
         "https://tax-rag-nwkw.vercel.app",
         "https://tag-rag.vercel.app",
         "null",                       # For file:// protocol (opening HTML directly)
