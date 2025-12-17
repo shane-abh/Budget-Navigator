@@ -32,6 +32,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Router Configuration
+      - "traefik.docker.network=web_proxy"
       - "traefik.http.routers.rag-api.rule=Host(`api.budgetnavigator.shaneabh.com`)"
       - "traefik.http.routers.rag-api.entrypoints=websecure"
       - "traefik.http.routers.rag-api.tls=true"
@@ -57,6 +58,7 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web_proxy"
       # Router Configuration
       - "traefik.http.routers.budget-ui.rule=Host(`budgetnavigator.shaneabh.com`)"
       - "traefik.http.routers.budget-ui.entrypoints=websecure"
