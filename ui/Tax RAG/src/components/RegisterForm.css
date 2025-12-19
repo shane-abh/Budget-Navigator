@@ -59,10 +59,10 @@
 }
 
 .register-container h1 {
-  font-family: 'Bebas Neue', 'Oswald', sans-serif;
-  font-size: 42px;
-  font-weight: 400;
-  letter-spacing: 4px;
+  font-family: 'Outfit', 'Oswald', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 1px;
   color: var(--text-primary);
   margin-bottom: 8px;
   text-transform: uppercase;
@@ -330,8 +330,8 @@
   }
   
   .register-container h1 {
-    font-size: 32px;
-    letter-spacing: 2px;
+    font-size: 30px;
+    letter-spacing: 0.5px;
   }
   
   .register-container .emoji {
