@@ -6,6 +6,16 @@ import { useAuth } from './hooks/useAuth'
 import { API_BASE_URL } from './config'
 import { validateChatInput } from './utils/inputValidation'
 
+/**
+ * Decodes HTML entities in a string (e.g., &#x27; -> ')
+ * This is needed because the API might send HTML-encoded text
+ */
+function decodeHtmlEntities(text: string): string {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
 // Create welcome message with user name
 const createWelcomeMessage = (name?: string): Message => ({
   content: name 
@@ -84,7 +94,8 @@ function App() {
     setMessages(prev => [...prev, { content: sanitizedMessage, isUser: true }]);
     setInputValue('');
     setIsLoading(true);
-    setCurrentOptimization({ original: sanitizedMessage });
+    // Decode HTML entities in case the message was already encoded
+    setCurrentOptimization({ original: decodeHtmlEntities(sanitizedMessage) });
     setCurrentAnswer('');
 
     try {
@@ -97,7 +108,8 @@ function App() {
       const eventSource = new EventSource(url, { withCredentials: true });
       eventSourceRef.current = eventSource;
 
-      const optimizationData: QueryOptimization = { original: sanitizedMessage };
+      // Decode HTML entities in case the message was already encoded
+      const optimizationData: QueryOptimization = { original: decodeHtmlEntities(sanitizedMessage) };
       let sourcesData: Source[] = [];
       let totalDocsCount = 0;
       let answerText = '';
@@ -115,12 +127,14 @@ function App() {
 
           case 'original_query':
             // Handle the original query from the API
-            optimizationData.original = data.content;
+            // Decode HTML entities in case the API sends encoded text
+            optimizationData.original = decodeHtmlEntities(data.content);
             setCurrentOptimization({ ...optimizationData });
             break;
 
           case 'rewritten_query':
-            optimizationData.rewritten = data.content;
+            // Decode HTML entities in case the API sends encoded text
+            optimizationData.rewritten = decodeHtmlEntities(data.content);
             setCurrentOptimization({ ...optimizationData });
             break;
 
@@ -149,11 +163,17 @@ function App() {
             setCurrentAnswer(answerText);
             break;
 
-          case 'answer_complete':
+          case 'answer_complete': {
+            // Ensure optimization data doesn't contain HTML entities
+            const finalOptimization: QueryOptimization = {
+              original: decodeHtmlEntities(optimizationData.original),
+              ...(optimizationData.rewritten && { rewritten: decodeHtmlEntities(optimizationData.rewritten) }),
+              ...(optimizationData.expanded && { expanded: optimizationData.expanded })
+            };
             setMessages(prev => [...prev, {
               content: answerText,
               isUser: false,
-              optimization: optimizationData,
+              optimization: finalOptimization,
               sources: sourcesData,
               totalDocs: totalDocsCount
             }]);
@@ -161,6 +181,7 @@ function App() {
             setCurrentOptimization(null);
             setStatusMessage('');
             break;
+          }
 
           case 'done':
             eventSource.close();
