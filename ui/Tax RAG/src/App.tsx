@@ -113,6 +113,12 @@ function App() {
             });
             break;
 
+          case 'original_query':
+            // Handle the original query from the API
+            optimizationData.original = data.content;
+            setCurrentOptimization({ ...optimizationData });
+            break;
+
           case 'rewritten_query':
             optimizationData.rewritten = data.content;
             setCurrentOptimization({ ...optimizationData });
